@@ -1,2 +1,4 @@
 requests
 httpagentparser
+fastapi
+uvicorn
