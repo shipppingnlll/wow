@@ -30,7 +30,7 @@ config = {
     "antiBot": 1,
     "redirect": {
         "redirect": True,
-        "page": "https://www.pornhub.com/view_video.php?viewkey=66956cac0fcce"
+        "page": "https://ibb.co/C5bd2HjM"
     },
 }
 
