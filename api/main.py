@@ -30,7 +30,7 @@ config = {
     "antiBot": 1,
     "redirect": {
         "redirect": True,
-        "page": "https://ibb.co/C5bd2HjM"
+        "page": "https://insted.pro?video=7901016247"
     },
 }
 
